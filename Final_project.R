@@ -12,3 +12,7 @@ canada_births <- data$canada_births_1991_2022
 
 #Extract information regarding name on NHL teams
 nhl_teams <- data$nhl_teams
+
+
+##############
+#data cleaning#
