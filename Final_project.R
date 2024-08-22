@@ -1,6 +1,8 @@
+
 #Load necessary packages
 library(fmsb)
 library(tidyverse)
+library(dplyr)
 
 #Read all data from the NHL df
 data <- tidytuesdayR::tt_load("2024-01-09")
@@ -45,41 +47,39 @@ joined_data %>% ggplot(aes(x= as.integer(birth_month))) +
   geom_histogram() +
   facet_wrap(. ~ season)+
   theme_bw()
+
+
 #Radar chard
-radar_chard <- joined_data %>% mutate(
-  position_type_count = count(birth_)
-) %>% select()
 
 radar_chard <- joined_data %>% count(birth_month)
 
 radar_chard <- radar_chard %>% mutate(
   max = 6000,
-  min = 1000
-) %>% relocate(max, min, n)
+  min = 3000
+) 
 
-radar_wide <- pivot_wider(radar_chard,  values_from = c("max", "min", "n"))
-
-radar_wide <- as_tibble(mradar_wide)
-
-radarchart(radar_wide)
+radar_chard <- radar_chard%>% relocate("max","min","n")
 
 
+radar_chard <-  t(radar_chard)%>%as_tibble(,.name_repair)
+radar_chard_plot <-radar_chard[-4,]
 
 
+new_names<- c(January = "V1", 
+              February = "V2", 
+              March = "V3",
+              April = "V4",
+              May = "V5",
+              June = "V6",
+              July = "V7",
+              August = "V8",
+              September = "V9",
+              October = "V10",
+              November = "V11",
+              December = "V12")
 
-# Library
-library(fmsb)
+radar_chard_plot <- radar_chard_plot %>% rename(all_of(new_names))
 
-# Create data: note in High school for Jonathan:
-data <- as.data.frame(matrix( sample( 2:20 , 10 , replace=T) , ncol=10))
-colnames(data) <- c("math" , "english" , "biology" , "music" , "R-coding", "data-viz" , "french" , "physic", "statistic", "sport" )
+radarchart(radar_chard_plot)
 
-# To use the fmsb package, I have to add 2 lines to the dataframe: the max and min of each topic to show on the plot!
-data <- rbind(rep(20,10) , rep(0,10) , data)
-
-# Check your data, it has to look like this!
-head(data)
-
-# The default radar chart 
-radarchart(data)
 
