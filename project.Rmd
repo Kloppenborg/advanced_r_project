@@ -22,6 +22,7 @@ Load data from the NHL dataset from tidytuesday
 ```{r, echo = TRUE, include=FALSE}
 #Read all data from the NHL df
 #data <- tidytuesdayR::tt_load("2024-01-09")
+load("nhl_data.Rdata")
 
 #Extract the roster information
 rosters <- data$nhl_rosters
@@ -68,7 +69,7 @@ radar_chard <- joined_data %>% count(birth_month)
 
 radar_chard <- radar_chard %>% mutate(
   max = 6000,
-  min = 3000
+  min = 0
 ) 
 
 radar_chard <- radar_chard%>% relocate("max","min","n")
@@ -93,13 +94,30 @@ new_names<- c(January = "V1",
 
 radar_chard_plot <- radar_chard_plot %>% rename(all_of(new_names))
 
+
+radar_chard <- joined_data %>% count(birth_month)
+
+radar_chard_3000 <- radar_chard %>% mutate(
+  max = 6000,
+  min = 3000
+) 
+
+radar_chard_3000 <- radar_chard_3000 %>% relocate("max","min","n")
+
+
+radar_chard_3000 <-  t(radar_chard_3000)%>%as_tibble(,.name_repair)
+radar_chard_plot_3000 <-radar_chard_3000[-4,]
+
+radar_chard_plot_3000 <- radar_chard_plot_3000 %>% rename(all_of(new_names))
+
+radarchart(radar_chard_plot_3000, title = "Number of NHL players")
 radarchart(radar_chard_plot, title = "Number of NHL players")
 ```
 
 
+#Histogram facet with position as well as season
 
-
-
+```{r echo=FALSE, fig.asp=3, fig.width="100%"}
 #Generate histogram of each birth month
 joined_data %>% ggplot(aes(x= as.integer(birth_month))) + 
   geom_histogram() +
@@ -109,20 +127,17 @@ joined_data %>% ggplot(aes(x= as.integer(birth_month))) +
 #Generate histogram for each season
 joined_data %>% ggplot(aes(x= as.integer(birth_month))) + 
   geom_histogram() +
-  facet_wrap(. ~ season)+
+  facet_wrap(. ~ season, ncol = 5)+
   theme_bw()
+```
 
 
 
+#We then want to control for the births of the given month
+
+```{r}
 #####Data after 2010#####
 joined_data_1991 <- joined_data %>% filter(birth_year>=1991)
-
-joined_data_1991 %>% ggplot(aes(x = as.integer(birth_month)))+
-  geom_histogram() +
-  facet_wrap(. ~ position_type)
-
-
-
 
 #Radar chard
 
@@ -136,14 +151,19 @@ canada_births %>% group_by(month) %>%
   select(max, min, promille) -> radar_chard_1991
 
 
-radar_chard_1991 <-  t(radar_chard_1991)%>%as_tibble(,.name_repair)
+radar_chard_1991 <-  t(radar_chard_1991) %>% as_tibble(,.name_repair)
 
 radar_chard_1991 <- radar_chard_1991 %>% rename(all_of(new_names))
 
 radarchart(radar_chard_1991, title = "Promille of NHL players")
 
+```
 
-## posirion
+
+
+Then investigated based on the players position
+
+```{r}
 
 df_defensemen<-joined_data_1991 %>% filter(position_type == "defensemen")
 df_forwards<-joined_data_1991 %>% filter(position_type == "forwards")
@@ -164,8 +184,6 @@ radar_chard_1991_def <-  t(radar_chard_1991_def)%>%as_tibble(,.name_repair)
 
 radar_chard_1991_def <- radar_chard_1991_def %>% rename(all_of(new_names))
 
-radarchart(radar_chard_1991_def, title = "Promille of NHL players")
-
 # for
 radar_chard_1991_for <- df_forwards %>% count(birth_month)
 
@@ -180,8 +198,6 @@ canada_births %>% group_by(month) %>%
 radar_chard_1991_for <-  t(radar_chard_1991_for)%>%as_tibble(,.name_repair)
 
 radar_chard_1991_for <- radar_chard_1991_for %>% rename(all_of(new_names))
-
-radarchart(radar_chard_1991_for, title = "Promille of NHL players")
 
 # goal
 radar_chard_1991_goal <- df_goalies %>% count(birth_month)
@@ -198,8 +214,9 @@ radar_chard_1991_goal <-  t(radar_chard_1991_goal)%>%as_tibble(,.name_repair)
 
 radar_chard_1991_goal <- radar_chard_1991_goal %>% rename(all_of(new_names))
 
-radarchart(radar_chard_1991_goal, title = "Promille of NHL players")
+radarchart(radar_chard_1991_def, title = "Promille of NHL defense")
+radarchart(radar_chard_1991_for, title = "Promille of NHL forwards")
+radarchart(radar_chard_1991_goal, title = "Promille of NHL goalies")
 
-
-
+```
 
