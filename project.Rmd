@@ -54,31 +54,40 @@ duplicates <- nhl_player_births %>% filter(player_id %in% c(8480870, 8478449) )
 #only keep distinct observations based on the player_id
 nhl_player_births <- nhl_player_births %>%  distinct(player_id, .keep_all = TRUE)
 
-#Join birth information to roster df
-joined_data <- left_join(rosters, nhl_player_births, by = join_by(player_id))
-
 
 ```
 
+Presenting data
+
+```{r}
+rosters
+nhl_player_births
+
+#Join birth information to roster df
+joined_data <- left_join(rosters, nhl_player_births, by = join_by(player_id))
+
+joined_data
+```
 
 
 Radar chard
-```{r}
-
+```{r, warning=FALSE}
+#generate a df with a variable with 1:12 and a variable with a count of NHL players born in each month
 radar_chard <- joined_data %>% count(birth_month)
 
+#Add the min and max parameters to the DF. This is used to set the scale of the radar chard plot. And relocate for the variables to have the required order.
 radar_chard <- radar_chard %>% mutate(
   max = 6000,
   min = 0
-) 
+) %>% relocate("max","min","n")
 
-radar_chard <- radar_chard%>% relocate("max","min","n")
+#Pivot data into a wide DF, and convert to a tibble.
+radar_chard <-  t(radar_chard) %>% as_tibble(,.name_repair)
 
+#Remove the row representing the month.
+radar_chard_plot <- radar_chard[-4,]
 
-radar_chard <-  t(radar_chard)%>%as_tibble(,.name_repair)
-radar_chard_plot <-radar_chard[-4,]
-
-
+#Define a vector with the name of each month.
 new_names<- c(January = "V1", 
               February = "V2", 
               March = "V3",
@@ -92,41 +101,33 @@ new_names<- c(January = "V1",
               November = "V11",
               December = "V12")
 
+#Rename the variables of the DF to the names from new_names vector
 radar_chard_plot <- radar_chard_plot %>% rename(all_of(new_names))
 
+#Generata a new DF with a minimum of 3000. Now having a scale from 3000 - 6000.
+radar_chard_plot_3000 <- radar_chard_plot
+radar_chard_plot_3000[2,] <- 3000
 
-radar_chard <- joined_data %>% count(birth_month)
-
-radar_chard_3000 <- radar_chard %>% mutate(
-  max = 6000,
-  min = 3000
-) 
-
-radar_chard_3000 <- radar_chard_3000 %>% relocate("max","min","n")
-
-
-radar_chard_3000 <-  t(radar_chard_3000)%>%as_tibble(,.name_repair)
-radar_chard_plot_3000 <-radar_chard_3000[-4,]
-
-radar_chard_plot_3000 <- radar_chard_plot_3000 %>% rename(all_of(new_names))
-
-radarchart(radar_chard_plot_3000, title = "Number of NHL players")
+#Plot a radarchard with a scale from 0 - 6000 and a scale from 3000 - 60000
 radarchart(radar_chard_plot, title = "Number of NHL players")
+radarchart(radar_chard_plot_3000, title = "Number of NHL players")
 ```
 
 
-#Histogram facet with position as well as season
+#Plot a histogram seperated on position type as well as season. 
 
-```{r echo=FALSE, fig.asp=3, fig.width="100%"}
+```{r, warning=FALSE}
 #Generate histogram of each birth month
-joined_data %>% ggplot(aes(x= as.integer(birth_month))) + 
-  geom_histogram() +
+joined_data %>% ggplot(aes(x = birth_month)) + 
+  geom_histogram(bins = 12, binwidth = 0.5) +
   facet_wrap(. ~ position_type)+
   theme_bw()
+```
 
+```{r echo=FALSE, warning=FALSE, fig.asp=3}
 #Generate histogram for each season
-joined_data %>% ggplot(aes(x= as.integer(birth_month))) + 
-  geom_histogram() +
+joined_data %>% ggplot(aes(x= birth_month)) + 
+  geom_histogram(bins = 12, binwidth = 0.5) +
   facet_wrap(. ~ season, ncol = 5)+
   theme_bw()
 ```
@@ -136,26 +137,33 @@ joined_data %>% ggplot(aes(x= as.integer(birth_month))) +
 #We then want to control for the births of the given month
 
 ```{r}
-#####Data after 2010#####
+#inspecting the Canada_birth df
+canada_births
+
+#User the filter function to only include players born after 1990
 joined_data_1991 <- joined_data %>% filter(birth_year>=1991)
 
-#Radar chard
-
+#Prepare data for the radarchart function.
+#Use the count function to count number of players born in each month of the year
 radar_chard_1991 <- joined_data_1991 %>% count(birth_month)
 
-canada_births %>% group_by(month) %>% 
-  summarise(total = sum(births)) %>%
-  rename(birth_month = "month") %>%
-  left_join(., radar_chard_1991) %>%
-  mutate(promille = n/total*1000, max = 1, min = 0) %>%
-  select(max, min, promille) -> radar_chard_1991
+#Generate a dataset with a row representing each month, and a variable for the min and max in the radarchard, and one variable describing the permille of players born in each month relative to the total number of birth in that month in Canada
+canada_births %>% group_by(month) %>% #Group by month
+  summarise(total = sum(births)) %>% #Count the number of births
+  rename(birth_month = "month") %>% 
+  left_join(., radar_chard_1991, by = join_by(birth_month)) %>% 
+  mutate(promille = n/total*1000, max = 1, min = 0) %>% #Convert to permille
+  select(max, min, promille) -> radar_chard_1991 #Select the three variables necessary for the radarchart function
 
-
+#Pivot data into 3 rows with max, min, and birth, and 12 columns representing each month of the year
 radar_chard_1991 <-  t(radar_chard_1991) %>% as_tibble(,.name_repair)
 
+#Rename the variables from v1 ... v12 into januar ... december.
+#obs. new_names is defined earlier. 
 radar_chard_1991 <- radar_chard_1991 %>% rename(all_of(new_names))
 
-radarchart(radar_chard_1991, title = "Promille of NHL players")
+#Call the radarchart function to generate the plot. 
+radarchart(radar_chard_1991, title = "Permille of NHL players")
 
 ```
 
@@ -163,8 +171,7 @@ radarchart(radar_chard_1991, title = "Promille of NHL players")
 
 Then investigated based on the players position
 
-```{r}
-
+```{r echo=FALSE, include=FALSE}
 df_defensemen<-joined_data_1991 %>% filter(position_type == "defensemen")
 df_forwards<-joined_data_1991 %>% filter(position_type == "forwards")
 df_goalies<-joined_data_1991 %>% filter(position_type == "goalies")
@@ -175,10 +182,9 @@ radar_chard_1991_def <- df_defensemen %>% count(birth_month)
 canada_births %>% group_by(month) %>% 
   summarise(total = sum(births)) %>%
   rename(birth_month = "month") %>%
-  left_join(., radar_chard_1991_def) %>%
+  left_join(., radar_chard_1991_def, by = join_by(birth_month)) %>%
   mutate(promille = n/total*1000, max = 1, min = 0) %>%
   select(max, min, promille) -> radar_chard_1991_def
-
 
 radar_chard_1991_def <-  t(radar_chard_1991_def)%>%as_tibble(,.name_repair)
 
@@ -190,7 +196,7 @@ radar_chard_1991_for <- df_forwards %>% count(birth_month)
 canada_births %>% group_by(month) %>% 
   summarise(total = sum(births)) %>%
   rename(birth_month = "month") %>%
-  left_join(., radar_chard_1991_for) %>%
+  left_join(., radar_chard_1991_for, by = join_by(birth_month)) %>%
   mutate(promille = n/total*1000, max = 1, min = 0) %>%
   select(max, min, promille) -> radar_chard_1991_for
 
@@ -205,18 +211,39 @@ radar_chard_1991_goal <- df_goalies %>% count(birth_month)
 canada_births %>% group_by(month) %>% 
   summarise(total = sum(births)) %>%
   rename(birth_month = "month") %>%
-  left_join(., radar_chard_1991_goal) %>%
+  left_join(., radar_chard_1991_goal, by = join_by(birth_month)) %>%
   mutate(promille = n/total*1000, max = 1, min = 0) %>%
   select(max, min, promille) -> radar_chard_1991_goal
 
 
-radar_chard_1991_goal <-  t(radar_chard_1991_goal)%>%as_tibble(,.name_repair)
+radar_chard_1991_goal <-  t(radar_chard_1991_goal) %>% as_tibble(,.name_repair)
 
 radar_chard_1991_goal <- radar_chard_1991_goal %>% rename(all_of(new_names))
 
-radarchart(radar_chard_1991_def, title = "Promille of NHL defense")
-radarchart(radar_chard_1991_for, title = "Promille of NHL forwards")
-radarchart(radar_chard_1991_goal, title = "Promille of NHL goalies")
+radarchart(radar_chard_1991_def, title = "Permille of NHL defense")
+radarchart(radar_chard_1991_for, title = "Permille of NHL forwards")
+radarchart(radar_chard_1991_goal, title = "Permille of NHL goalies")
+
+```
+
+
+
+```{r}
+radar_chard_all <- radar_chard_1991_def
+radar_chard_all[4,]<-radar_chard_1991_for[3,]
+radar_chard_all[5,]<-radar_chard_1991_goal[3,]
+
+radarchart(radar_chard_all, axistype = 1, title = "Permille of NHL players", 
+           pcol = c("#00AFBB", "#E7B800", "#FC4E07"), 
+           caxislabels = c(0.0, 0.2, 0.4, 0.6, 0.8, 1.0), 
+           axislabcol = "grey", 
+           vlcex = 1)
+legend(x = "bottom", legend = c("Defense", "forwards", "Goalies"), horiz = TRUE, bty = "n", pch = 20, 
+       col = c("#00AFBB", "#E7B800", "#FC4E07"), 
+       text.col = "black", cex = 1, 
+       pt.cex = 1.5, 
+       xpd =TRUE, 
+       inset = c(0, -.15))
 
 ```
 
