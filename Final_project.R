@@ -80,6 +80,7 @@ new_names<- c(January = "V1",
 
 radar_chard_plot <- radar_chard_plot %>% rename(all_of(new_names))
 
-radarchart(radar_chard_plot)
+radarchart(radar_chard_plot, title = "Number of NHL players")
 
+?radarchart
 
