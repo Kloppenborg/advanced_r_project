@@ -1,11 +1,27 @@
+---
+title: "Project"
+output: html_document
+date: "2024-08-23"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
 
 #Load necessary packages
 library(fmsb)
 library(tidyverse)
 library(dplyr)
+library(tidytuesdayR)
 
+```
+
+
+
+Load data from the NHL dataset from tidytuesday
+
+```{r, echo = TRUE, include=FALSE}
 #Read all data from the NHL df
-data <- tidytuesdayR::tt_load("2024-01-09")
+#data <- tidytuesdayR::tt_load("2024-01-09")
 
 #Extract the roster information
 rosters <- data$nhl_rosters
@@ -18,7 +34,11 @@ canada_births <- data$canada_births_1991_2022
 
 #Extract information regarding name on NHL teams
 nhl_teams <- data$nhl_teams
+```
 
+
+
+```{r,include=FALSE}
 
 ###############
 #data cleaning#
@@ -37,9 +57,12 @@ nhl_player_births <- nhl_player_births %>%  distinct(player_id, .keep_all = TRUE
 joined_data <- left_join(rosters, nhl_player_births, by = join_by(player_id))
 
 
+```
 
 
-#Radar chard
+
+Radar chard
+```{r}
 
 radar_chard <- joined_data %>% count(birth_month)
 
@@ -71,6 +94,9 @@ new_names<- c(January = "V1",
 radar_chard_plot <- radar_chard_plot %>% rename(all_of(new_names))
 
 radarchart(radar_chard_plot, title = "Number of NHL players")
+```
+
+
 
 
 
@@ -173,4 +199,7 @@ radar_chard_1991_goal <-  t(radar_chard_1991_goal)%>%as_tibble(,.name_repair)
 radar_chard_1991_goal <- radar_chard_1991_goal %>% rename(all_of(new_names))
 
 radarchart(radar_chard_1991_goal, title = "Promille of NHL players")
+
+
+
 
